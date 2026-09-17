@@ -1,0 +1,1225 @@
+:root {
+  --stone: #2b2621;
+  --stone-dark: #191613;
+  --stone-translucent: rgba(43, 38, 33, 0.75);
+  --bronze: #a8763e;
+  --bronze-light: #c99a5e;
+  --bronze-glow: rgba(201, 154, 94, 0.25);
+  --river: #3d6b6b;
+  --river-light: #528c8c;
+  --cream: #f2ece1;
+  --line: #5a4f42;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--stone);
+  color: var(--cream);
+  font-family: Georgia, 'Times New Roman', serif;
+  min-height: 100svh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100vw;
+  height: 100svh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Header & Top Bar */
+header {
+  width: 100%;
+  position: fixed;
+  z-index: 5;
+  top: 0;
+  left: 0;
+  padding: 20px 28px;
+  text-align: left;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(20, 17, 14, 0.88) 0%, rgba(20, 17, 14, 0.45) 70%, transparent 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.header-left {
+  max-width: 650px;
+}
+
+header h1 {
+  font-size: 1.45rem;
+  margin: 0 0 4px;
+  font-weight: normal;
+  letter-spacing: 0.3px;
+  color: var(--cream);
+}
+
+header .instructions {
+  margin: 0;
+  color: var(--bronze-light);
+  font-size: 0.9rem;
+  font-family: Arial, sans-serif;
+  opacity: 0.95;
+}
+
+.caption {
+  font-family: Arial, sans-serif;
+  font-size: 0.82rem;
+  color: var(--cream);
+  opacity: 0.88;
+  margin-top: 6px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  transition: opacity 0.35s ease;
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.step-count {
+  font-family: Arial, sans-serif;
+  font-size: 0.85rem;
+  color: var(--bronze-light);
+  text-align: right;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+}
+
+/* Mode Switcher Pill */
+.mode-switcher {
+  display: flex;
+  background: rgba(25, 22, 19, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.mode-btn {
+  background: transparent;
+  border: none;
+  color: var(--cream);
+  font-family: Arial, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mode-btn:hover {
+  color: #fff;
+  background: rgba(201, 154, 94, 0.15);
+}
+
+.mode-btn.active {
+  background: var(--bronze);
+  color: var(--stone-dark);
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Viewer Wrap & Frame Box */
+.viewer-wrap {
+  width: 100%;
+  height: 100svh;
+  padding: 0;
+  position: relative;
+}
+
+.frame-box {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #110e0c;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.frame-box.dragging {
+  cursor: grabbing;
+}
+
+.frame-box::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  box-shadow: inset 0 0 140px rgba(0, 0, 0, 0.65);
+}
+
+/* Dual Layer Panorama & Photo Crossfader */
+.pano-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity;
+  overflow: hidden;
+}
+
+.pano-layer.active {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+/* Ambient blurred backdrop for simple photos to completely eliminate black void */
+.pano-ambient-backdrop {
+  position: absolute;
+  inset: -40px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px) brightness(0.4) saturate(1.2);
+  transform: scale(1.15);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.85;
+}
+
+.pano-img {
+  position: relative;
+  z-index: 2;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+  transform-origin: center center;
+}
+
+/* Wide panoramic images */
+.pano-img.img-pano {
+  height: 100%;
+  width: auto;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+}
+
+/* Simple / regular photos */
+.pano-img.img-simple {
+  max-height: 94%;
+  max-width: 94%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+}
+
+.pano-img.img-simple.mode-fill {
+  max-height: none;
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* Photo Type Badge */
+.pano-type-pill {
+  position: absolute;
+  top: 140px;
+  left: 28px;
+  z-index: 4;
+  background: rgba(25, 22, 19, 0.75);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  letter-spacing: 0.02em;
+}
+
+/* Fallback Card while waiting for photo file in public/photos */
+.pano-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 50%, rgba(169, 118, 62, 0.18), transparent 70%), var(--stone);
+  color: var(--cream);
+  height: 100%;
+  width: 100%;
+}
+
+.pano-placeholder .point-badge {
+  background: var(--bronze);
+  color: var(--stone-dark);
+  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.pano-placeholder .filename {
+  font-family: monospace;
+  font-size: 1.15rem;
+  color: var(--bronze-light);
+  margin-bottom: 8px;
+}
+
+.pano-placeholder .coords {
+  font-size: 0.82rem;
+  opacity: 0.8;
+  font-family: monospace;
+}
+
+.pano-placeholder code {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--bronze-light);
+}
+
+/* Pan Hint Overlay */
+.pano-hint {
+  position: absolute;
+  bottom: 125px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  background: rgba(25, 22, 19, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  font-family: Arial, sans-serif;
+  font-size: 0.76rem;
+  padding: 6px 16px;
+  border-radius: 20px;
+  pointer-events: none;
+  opacity: 0.95;
+  transition: opacity 0.5s ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.pano-hint.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Zoom Controls Pill */
+.zoom-controls {
+  position: absolute;
+  bottom: 120px;
+  right: 28px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: rgba(25, 22, 19, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.zoom-btn {
+  background: transparent;
+  border: none;
+  color: var(--cream);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.zoom-btn:hover {
+  background: rgba(201, 154, 94, 0.2);
+  color: #fff;
+}
+
+/* Shimmer Loading Screen */
+.loading-shimmer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--stone);
+  z-index: 4;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  font-family: Arial, sans-serif;
+  font-size: 0.85rem;
+  color: var(--bronze-light);
+  letter-spacing: 0.4px;
+}
+
+.loading-shimmer.show {
+  opacity: 1;
+}
+
+.loading-shimmer span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bronze-light);
+  margin: 0 4px;
+  animation: pulse 1s infinite ease-in-out;
+}
+
+.loading-shimmer span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-shimmer span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes pulse {
+  0%, 80%, 100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Telemetry Badge */
+.gps-badge {
+  position: fixed;
+  top: 105px;
+  right: 28px;
+  z-index: 4;
+  background: var(--stone-translucent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-family: Arial, sans-serif;
+  font-size: 0.75rem;
+  color: var(--cream);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  max-width: 280px;
+  pointer-events: auto;
+  animation: fadeIn 0.3s ease;
+}
+
+.gps-badge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: bold;
+  color: var(--bronze-light);
+  gap: 8px;
+}
+
+.gps-badge-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+}
+
+.gps-badge-status-dot.warning {
+  background: #eab308;
+}
+
+.gps-badge-status-dot.error {
+  background: #ef4444;
+}
+
+.gps-badge-coords {
+  color: var(--cream);
+  opacity: 0.85;
+  font-family: monospace;
+  font-size: 0.72rem;
+}
+
+.gps-sim-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(90, 79, 66, 0.4);
+}
+
+.speed-btn {
+  background: rgba(201, 154, 94, 0.15);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.speed-btn.active {
+  background: var(--bronze);
+  color: var(--stone-dark);
+  font-weight: bold;
+}
+
+/* Controls (Manual Back / Next Buttons) */
+.controls {
+  display: flex;
+  position: fixed;
+  z-index: 4;
+  left: 50%;
+  bottom: 68px;
+  width: min(520px, calc(100% - 40px));
+  transform: translateX(-50%);
+  align-items: center;
+  gap: 10px;
+}
+
+button.ctrl-btn {
+  font-family: Arial, sans-serif;
+  background: rgba(43, 38, 33, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--bronze);
+  color: var(--cream);
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+button.ctrl-btn:hover:not(:disabled) {
+  background: var(--bronze);
+  color: var(--stone-dark);
+}
+
+button.ctrl-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.forward-btn {
+  flex: 1;
+  background: var(--bronze) !important;
+  color: var(--stone-dark) !important;
+  border: 1px solid var(--bronze);
+  font-weight: bold;
+}
+
+.forward-btn:hover:not(:disabled) {
+  background: var(--bronze-light) !important;
+  border-color: var(--bronze-light);
+}
+
+/* Path Progress Track */
+.path-track {
+  position: fixed;
+  z-index: 4;
+  left: 50%;
+  bottom: 18px;
+  width: min(520px, calc(100% - 40px));
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(43, 38, 33, 0.78);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(90, 79, 66, 0.45);
+}
+
+.path-line {
+  position: relative;
+  height: 2px;
+  background: var(--line);
+  margin: 18px 4px 0;
+}
+
+.path-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--river);
+  transition: width 0.3s ease;
+}
+
+.path-dots {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin-top: -5px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+  border: 2px solid var(--stone);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  padding: 0;
+}
+
+.dot:hover,
+.dot:focus-visible {
+  background: var(--bronze-light);
+  transform: scale(1.35);
+  outline: none;
+}
+
+.dot.done {
+  background: var(--river);
+}
+
+.dot.active {
+  background: var(--bronze-light);
+  width: 11px;
+  height: 11px;
+  box-shadow: 0 0 6px var(--bronze-glow);
+}
+
+/* Intro Overlay */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(169, 118, 62, 0.22), transparent 60%),
+    var(--stone);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+.intro.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.intro .eyebrow {
+  font-family: Arial, sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 1.5px;
+  color: var(--bronze-light);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.intro h1 {
+  font-size: 2.1rem;
+  margin: 0 0 14px;
+  font-weight: normal;
+  color: var(--cream);
+}
+
+.intro p {
+  font-family: Arial, sans-serif;
+  color: var(--cream);
+  opacity: 0.85;
+  max-width: 420px;
+  line-height: 1.6;
+  margin: 0 0 32px;
+  font-size: 0.95rem;
+}
+
+.begin-btn {
+  background: var(--bronze);
+  color: var(--stone);
+  border: 1px solid var(--bronze);
+  padding: 14px 36px;
+  font-size: 1rem;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.begin-btn:hover {
+  background: var(--bronze-light);
+  border-color: var(--bronze-light);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   RESPONSIVE: Tablet (≤768px)
+   ============================================ */
+@media (max-width: 768px) {
+  /* Header: stack vertically, reduce padding */
+  header {
+    flex-direction: column;
+    padding: 14px 16px;
+    gap: 8px;
+    background: linear-gradient(180deg, rgba(20, 17, 14, 0.92) 0%, rgba(20, 17, 14, 0.5) 80%, transparent 100%);
+  }
+
+  .header-left {
+    max-width: 100%;
+  }
+
+  header h1 {
+    font-size: 1.2rem;
+  }
+
+  header .instructions {
+    font-size: 0.78rem;
+  }
+
+  .caption {
+    font-size: 0.76rem;
+  }
+
+  .header-right {
+    align-items: center;
+    width: 100%;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+  }
+
+  .step-count {
+    font-size: 0.78rem;
+  }
+
+  /* Mode switcher */
+  .mode-switcher {
+    border-radius: 16px;
+  }
+
+  .mode-btn {
+    font-size: 0.72rem;
+    padding: 4px 10px;
+  }
+
+  /* GPS Badge: reposition as bottom drawer above controls */
+  .gps-badge {
+    top: auto;
+    bottom: 120px;
+    right: 50%;
+    left: auto;
+    transform: translateX(50%);
+    width: min(460px, calc(100% - 32px));
+    max-width: none;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 0.72rem;
+  }
+
+  /* Controls: widen on tablets */
+  .controls {
+    bottom: 60px;
+    width: min(460px, calc(100% - 32px));
+    gap: 8px;
+  }
+
+  button.ctrl-btn {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+  }
+
+  /* Path track */
+  .path-track {
+    bottom: 14px;
+    width: min(460px, calc(100% - 32px));
+    padding: 6px 10px;
+  }
+
+  /* Zoom controls */
+  .zoom-controls {
+    bottom: 130px;
+    right: 16px;
+  }
+
+  .zoom-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.15rem;
+  }
+
+  .pano-type-pill {
+    top: auto;
+    bottom: 135px;
+    left: 16px;
+    font-size: 0.72rem;
+  }
+
+  /* Pano hint */
+  .pano-hint {
+    bottom: 130px;
+    font-size: 0.72rem;
+    padding: 5px 12px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE: Mobile (≤600px)
+   ============================================ */
+@media (max-width: 600px) {
+  header {
+    padding: 12px 14px;
+    gap: 6px;
+  }
+
+  header h1 {
+    font-size: 1.05rem;
+    margin-bottom: 2px;
+  }
+
+  header .instructions {
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  .caption {
+    font-size: 0.72rem;
+    margin-top: 4px;
+  }
+
+  .header-right {
+    flex-direction: row-reverse;
+    gap: 8px;
+  }
+
+  .step-count {
+    font-size: 0.74rem;
+    white-space: nowrap;
+  }
+
+  /* Mode switcher: compact for small screens */
+  .mode-switcher {
+    padding: 2px;
+    gap: 1px;
+    border-radius: 14px;
+  }
+
+  .mode-btn {
+    font-size: 0.68rem;
+    padding: 4px 8px;
+    gap: 4px;
+    border-radius: 12px;
+  }
+
+  /* GPS Badge: full-width bottom card */
+  .gps-badge {
+    bottom: 112px;
+    width: calc(100% - 24px);
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+  }
+
+  .gps-badge-header {
+    font-size: 0.72rem;
+  }
+
+  .gps-badge-coords {
+    font-size: 0.68rem;
+  }
+
+  .gps-sim-controls {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .speed-btn {
+    font-size: 0.66rem;
+    padding: 3px 6px;
+    /* Minimum touch target */
+    min-height: 28px;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Controls: bottom nav bar style */
+  .controls {
+    bottom: 52px;
+    width: calc(100% - 24px);
+    gap: 6px;
+  }
+
+  button.ctrl-btn {
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    /* 44px min touch target for accessibility */
+    min-height: 44px;
+    border-radius: 8px;
+  }
+
+  .forward-btn {
+    font-size: 0.88rem !important;
+  }
+
+  /* Path track: full width */
+  .path-track {
+    bottom: 10px;
+    width: calc(100% - 24px);
+    padding: 6px 8px;
+    border-radius: 8px;
+  }
+
+  .path-line {
+    margin: 14px 2px 0;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    /* Larger touch targets on mobile */
+    padding: 0;
+    border-width: 2px;
+  }
+
+  .dot.active {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* Zoom controls: slightly larger buttons for touch */
+  .zoom-controls {
+    bottom: 120px;
+    right: 12px;
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .zoom-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 1.2rem;
+  }
+
+  /* Pano hint: compact */
+  .pano-hint {
+    bottom: 120px;
+    font-size: 0.68rem;
+    padding: 5px 10px;
+    max-width: calc(100% - 80px);
+    white-space: normal;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .pano-type-pill {
+    top: auto;
+    bottom: 165px;
+    left: 12px;
+    font-size: 0.68rem;
+    padding: 3px 8px;
+  }
+
+  /* Intro overlay: mobile */
+  .intro {
+    padding: 20px 16px;
+  }
+
+  .intro .eyebrow {
+    font-size: 0.7rem;
+    letter-spacing: 1.2px;
+  }
+
+  .intro h1 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+
+  .intro p {
+    font-size: 0.88rem;
+    margin-bottom: 28px;
+    max-width: 320px;
+    line-height: 1.5;
+  }
+
+  .begin-btn {
+    padding: 14px 32px;
+    font-size: 0.95rem;
+    width: min(280px, 100%);
+    border-radius: 6px;
+  }
+
+  /* Panorama placeholder card */
+  .pano-placeholder {
+    padding: 16px;
+  }
+
+  .pano-placeholder .point-badge {
+    font-size: 0.78rem;
+    padding: 5px 12px;
+  }
+
+  .pano-placeholder .filename {
+    font-size: 0.95rem;
+  }
+
+  .pano-placeholder .coords {
+    font-size: 0.75rem;
+  }
+
+  /* Vignette: lighter on mobile so edges aren't too dark */
+  .frame-box::after {
+    box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* ============================================
+   RESPONSIVE: Small phone (≤380px)
+   ============================================ */
+@media (max-width: 380px) {
+  header {
+    padding: 10px 12px;
+    gap: 4px;
+  }
+
+  header h1 {
+    font-size: 0.95rem;
+  }
+
+  header .instructions {
+    font-size: 0.68rem;
+  }
+
+  .mode-btn {
+    font-size: 0.62rem;
+    padding: 3px 6px;
+  }
+
+  .step-count {
+    font-size: 0.7rem;
+  }
+
+  .gps-badge {
+    bottom: 108px;
+    width: calc(100% - 16px);
+    font-size: 0.66rem;
+    padding: 6px 8px;
+  }
+
+  .controls {
+    bottom: 48px;
+    width: calc(100% - 16px);
+    gap: 4px;
+  }
+
+  button.ctrl-btn {
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+
+  .path-track {
+    bottom: 8px;
+    width: calc(100% - 16px);
+    padding: 5px 6px;
+  }
+
+  .zoom-controls {
+    bottom: 114px;
+    right: 8px;
+  }
+
+  .zoom-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .intro h1 {
+    font-size: 1.3rem;
+  }
+
+  .intro p {
+    font-size: 0.82rem;
+    max-width: 280px;
+  }
+
+  .begin-btn {
+    padding: 12px 24px;
+    font-size: 0.88rem;
+  }
+}
+
+/* ============================================
+   RESPONSIVE: Landscape mobile
+   ============================================ */
+@media (max-height: 500px) and (orientation: landscape) {
+  header {
+    padding: 8px 16px;
+    flex-direction: row;
+    gap: 12px;
+    background: linear-gradient(180deg, rgba(20, 17, 14, 0.95) 0%, transparent 100%);
+  }
+
+  header h1 {
+    font-size: 0.95rem;
+    margin-bottom: 0;
+  }
+
+  header .instructions {
+    display: none;
+  }
+
+  .caption {
+    margin-top: 2px;
+    font-size: 0.7rem;
+  }
+
+  .gps-badge {
+    top: 8px;
+    bottom: auto;
+    right: 8px;
+    left: auto;
+    transform: none;
+    width: auto;
+    max-width: 220px;
+    font-size: 0.65rem;
+    padding: 4px 8px;
+  }
+
+  .gps-sim-controls {
+    display: none;
+  }
+
+  .controls {
+    bottom: 36px;
+    width: calc(100% - 20px);
+  }
+
+  button.ctrl-btn {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    min-height: 36px;
+  }
+
+  .path-track {
+    bottom: 4px;
+    width: calc(100% - 20px);
+    padding: 4px 6px;
+  }
+
+  .path-line {
+    margin: 12px 2px 0;
+  }
+
+  .zoom-controls {
+    bottom: 44px;
+    right: 8px;
+  }
+
+  .zoom-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+
+  .pano-hint {
+    bottom: 80px;
+    font-size: 0.65rem;
+  }
+
+  .intro h1 {
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+  }
+
+  .intro p {
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+  }
+}
+
+/* ============================================
+   Safe area insets for notched phones
+   ============================================ */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .controls {
+    bottom: calc(68px + env(safe-area-inset-bottom));
+  }
+  .path-track {
+    bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+  .gps-badge {
+    /* Only apply on mobile where badge is at bottom */
+  }
+
+  @media (max-width: 768px) {
+    .controls {
+      bottom: calc(60px + env(safe-area-inset-bottom));
+    }
+    .path-track {
+      bottom: calc(14px + env(safe-area-inset-bottom));
+    }
+    .gps-badge {
+      bottom: calc(120px + env(safe-area-inset-bottom));
+    }
+  }
+
+  @media (max-width: 600px) {
+    .controls {
+      bottom: calc(52px + env(safe-area-inset-bottom));
+    }
+    .path-track {
+      bottom: calc(10px + env(safe-area-inset-bottom));
+    }
+    .gps-badge {
+      bottom: calc(112px + env(safe-area-inset-bottom));
+    }
+  }
+}

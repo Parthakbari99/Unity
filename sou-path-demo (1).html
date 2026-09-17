@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statue of Unity — Path Walk Demo</title>
+<style>
+  :root{
+    --stone:#2b2621;
+    --bronze:#a8763e;
+    --bronze-light:#c99a5e;
+    --river:#3d6b6b;
+    --cream:#f2ece1;
+    --line:#5a4f42;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--stone);
+    color:var(--cream);
+    font-family:Georgia, 'Times New Roman', serif;
+    min-height:100svh;
+    overflow:hidden;
+  }
+  header{
+    width:100%;
+    position:fixed;
+    z-index:2;
+    top:0;
+    left:0;
+    padding:24px 28px;
+    text-align:left;
+    pointer-events:none;
+    background:linear-gradient(180deg, rgba(20,17,14,.82), transparent);
+  }
+  header h1{
+    font-size:1.5rem;
+    margin:0 0 4px;
+    font-weight:normal;
+    letter-spacing:0.3px;
+  }
+  header p{
+    margin:0;
+    color:var(--bronze-light);
+    font-size:0.95rem;
+    font-family:Arial, sans-serif;
+  }
+  .caption{
+    font-family:Arial, sans-serif;
+    font-size:0.78rem;
+    color:var(--cream);
+    opacity:.85;
+    margin-top:6px;
+    transition:opacity .35s ease;
+  }
+  .viewer-wrap{
+    width:100%;
+    height:100svh;
+    padding:0;
+  }
+  .frame-box{
+    position:relative;
+    width:100%;
+    height:100%;
+    background:#000;
+    overflow:hidden;
+  }
+  .frame-box::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    z-index:1;
+    box-shadow: inset 0 0 140px rgba(0,0,0,.65);
+  }
+  .frame-box iframe{
+    width:100%;
+    height:100%;
+    border:0;
+    display:block;
+    position:absolute;
+    top:0; left:0;
+    opacity:0;
+    transform:scale(1.08);
+    transition:opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+    pointer-events:none;
+  }
+  .frame-box iframe.active{
+    opacity:1;
+    transform:scale(1);
+    pointer-events:auto;
+  }
+  .loading-shimmer{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--stone);
+    z-index:1;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s ease;
+    font-family:Arial, sans-serif;
+    font-size:.85rem;
+    color:var(--bronze-light);
+    letter-spacing:.4px;
+  }
+  .loading-shimmer.show{opacity:1;}
+  .loading-shimmer span{
+    display:inline-block;
+    width:8px;height:8px;border-radius:50%;
+    background:var(--bronze-light);
+    margin:0 4px;
+    animation:pulse 1s infinite ease-in-out;
+  }
+  .loading-shimmer span:nth-child(2){animation-delay:.15s;}
+  .loading-shimmer span:nth-child(3){animation-delay:.3s;}
+  @keyframes pulse{
+    0%,80%,100%{opacity:.25; transform:scale(.8);}
+    40%{opacity:1; transform:scale(1);}
+  }
+  .step-count{
+    position:fixed;
+    z-index:2;
+    top:28px;
+    right:28px;
+    font-family:Arial, sans-serif;
+    font-size:0.8rem;
+    color:var(--bronze-light);
+    text-align:right;
+  }
+  .controls{
+    display:flex;
+    position:fixed;
+    z-index:2;
+    left:50%;
+    bottom:72px;
+    width:min(520px, calc(100% - 40px));
+    transform:translateX(-50%);
+    align-items:center;
+    gap:12px;
+  }
+  button{
+    font-family:Arial, sans-serif;
+    background:transparent;
+    border:1px solid var(--bronze);
+    color:var(--cream);
+    padding:10px 20px;
+    font-size:0.95rem;
+    cursor:pointer;
+    transition:background 0.2s ease, color 0.2s ease, opacity .2s ease;
+  }
+  button:hover:not(:disabled){
+    background:var(--bronze);
+    color:var(--stone);
+  }
+  button:disabled{
+    opacity:0.35;
+    cursor:default;
+  }
+  .forward-btn{
+    flex:1;
+    background:var(--bronze);
+    color:var(--stone);
+    border:1px solid var(--bronze);
+    font-size:1rem;
+    padding:12px 20px;
+  }
+  .play-btn{min-width:92px;}
+  .forward-btn:hover:not(:disabled){
+    background:var(--bronze-light);
+    border-color:var(--bronze-light);
+  }
+  .path-track{
+    position:fixed;
+    z-index:2;
+    left:50%;
+    bottom:20px;
+    width:min(520px, calc(100% - 40px));
+    transform:translateX(-50%);
+    padding:6px 0;
+    background:rgba(43,38,33,.68);
+  }
+  .path-line{
+    position:relative;
+    height:2px;
+    background:var(--line);
+    margin:18px 4px 0;
+  }
+  .path-fill{
+    position:absolute;
+    left:0; top:0;
+    height:100%;
+    background:var(--river);
+    transition:width 0.3s ease;
+  }
+  .path-dots{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    margin-top:-5px;
+  }
+  .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--line);
+    border:2px solid var(--stone);
+    cursor:pointer;
+    transition:background 0.2s ease, transform 0.2s ease;
+  }
+  .dot:hover,.dot:focus-visible{background:var(--bronze-light); transform:scale(1.35); outline:none;}
+  .dot.done{background:var(--river);}
+  .dot.active{background:var(--bronze-light); width:11px;height:11px;}
+
+  /* intro overlay */
+  .intro{
+    position:fixed; inset:0; z-index:10;
+    background:
+      radial-gradient(circle at 50% 40%, rgba(169,118,62,.18), transparent 60%),
+      var(--stone);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:24px;
+    transition:opacity .6s ease, visibility .6s ease;
+  }
+  .intro.hidden{opacity:0; visibility:hidden; pointer-events:none;}
+  .intro .eyebrow{
+    font-family:Arial, sans-serif; font-size:.78rem; letter-spacing:1.5px;
+    color:var(--bronze-light); margin-bottom:14px;
+  }
+  .intro h1{
+    font-size:2.1rem; margin:0 0 14px; font-weight:normal;
+  }
+  .intro p{
+    font-family:Arial, sans-serif; color:var(--cream); opacity:.8;
+    max-width:380px; line-height:1.5; margin:0 0 32px; font-size:.92rem;
+  }
+  .begin-btn{
+    background:var(--bronze); color:var(--stone); border:1px solid var(--bronze);
+    padding:14px 34px; font-size:1rem; font-family:Arial, sans-serif;
+  }
+  .begin-btn:hover{background:var(--bronze-light); border-color:var(--bronze-light);}
+  @media (max-width:600px){
+    header{padding:18px 20px;}
+    header h1{font-size:1.15rem;}
+    header p{font-size:.8rem; max-width:220px;}
+    .step-count{top:20px; right:20px;}
+    .controls{bottom:76px; width:calc(100% - 28px);}
+    .path-track{bottom:14px; width:calc(100% - 28px);}
+    .intro h1{font-size:1.6rem;}
+  }
+</style>
+</head>
+<body>
+
+<div class="intro" id="intro">
+  <div class="eyebrow">SARDAR VALLABHBHAI PATEL RASHTRIYA EKTA TRUST</div>
+  <h1>Statue of Unity — Walk the Path</h1>
+  <p>Experience the walk from the entrance to the base of the world's tallest statue, one step at a time.</p>
+  <button class="begin-btn" id="beginBtn">Begin the Walk</button>
+</div>
+
+<header>
+  <h1>Statue of Unity — Walk the Path</h1>
+  <p>Drag to look around. Tap forward, use arrow keys, or swipe to keep walking.</p>
+  <div class="caption" id="caption"></div>
+</header>
+
+<div class="viewer-wrap">
+  <div class="frame-box" id="frameBox">
+    <div class="loading-shimmer" id="loadingShimmer"><span></span><span></span><span></span></div>
+  </div>
+  <div class="step-count" id="stepCount">Point 1 of 14</div>
+</div>
+
+<div class="viewer-wrap controls-wrap">
+  <div class="controls">
+    <button id="backBtn">← Back</button>
+    <button class="play-btn" id="playBtn" aria-pressed="false">Play</button>
+    <button class="forward-btn" id="forwardBtn">Walk Forward →</button>
+  </div>
+</div>
+
+<div class="path-track">
+  <div class="path-line">
+    <div class="path-fill" id="pathFill"></div>
+  </div>
+  <div class="path-dots" id="pathDots"></div>
+</div>
+
+<script>
+
+  const panos = [
+    "https://www.google.com/maps/embed?pb=!4v1789103542373!6m8!1m7!1sCAoSF0NJSE0wb2dLRUlDQWdJRDQxZTNMd3dF!2m2!1d21.83835221821875!2d73.72387700284506!3f293.6191607737583!4f2.358805605813103!5f0.7820865974627469",
+    "https://www.google.com/maps/embed?pb=!4v1789103605697!6m8!1m7!1sCAoSF0NJSE0wb2dLRUlDQWdJRDR0Wm14dWdF!2m2!1d21.83839420720351!2d73.72383884113097!3f311.41007406118047!4f-3.298123448266992!5f0.7820865974627469",
+    "https://www.google.com/maps/embed?pb=!4v1789103678985!6m8!1m7!1sCAoSFkNJSE0wb2dLRUlDQWdJRDQxWXY2ZWc.!2m2!1d21.83843227376649!2d73.72373198829317!3f263.8258011036283!4f-6.2990620233615715!5f0.4000000000000002",
+    "https://www.google.com/maps/embed?pb=!4v1789103818944!6m8!1m7!1sCAoSFkNJSE0wb2dLRUlDQWdJRDQxYTJETVE.!2m2!1d21.83845712915155!2d73.7235107398845!3f253.26261855370552!4f-0.5306560075177629!5f0.7820865974627469",
+    "https://www.google.com/maps/embed?pb=!4v1789100300057!6m8!1m7!1sCAoSF0NJSE0wb2dLRUlDQWdJRDR0ZGE3NWdF!2m2!1d21.83833498812155!2d73.72251125795164!3f264.9609239258867!4f3.96975671150922!5f0.7820865974627469",
+    "https://www.google.com/maps/embed?pb=!4v1789100283001!6m8!1m7!1sCAoSF0NJSE0wb2dLRUlDQWdJRDR0Wmo1NlFF!2m2!1d21.83830642269577!2d73.72231290541016!3f256.1833485842342!4f-7.311154415341477!5f0.7820865974627469",
+    "https://www.google.com/maps/embed?pb=!4v1789100259298!6m8!1m7!1sCAoSFkNJSE0wb2dLRUlDQWdJRDQxZmZ5Qnc.!2m2!1d21.83826087852743!2d73.72209856951143!3f247.9348559143084!4f4.016942728079556!5f0.7820865974627469",
+    "https://www.google.com/maps/embed?pb=!4v1789100238377!6m8!1m7!1sCAoSF0NJSE0wb2dLRUlDQWdJRDQxZFhlbXdF!2m2!1d21.83822629004196!2d73.72187902538263!3f278.0757033972242!4f1.5163993216981027!5f0.4000000000000002",
+    "https://www.google.com/maps/embed?pb=!4v1789100206256!6m8!1m7!1sCAoSF0NJSE0wb2dLRUlDQWdJRDR0ZFhwOGdF!2m2!1d21.83814172126344!2d73.72121985280351!3f232.54461964468862!4f7.3842539561586875!5f0.7820865974627469",
+    "https://www.google.com/maps/embed?pb=!4v1789100178184!6m8!1m7!1sCAoSFkNJSE0wb2dLRUlDQWdJRDQxYS02SFE.!2m2!1d21.83812713956078!2d73.72113041851587!3f265.6690366527275!4f12.71585012964475!5f0.7820865974627469",
+    "https://www.google.com/maps/embed?pb=!4v1789100113152!6m8!1m7!1sCAoSF0NJSE0wb2dLRUlDQWdJRDR0YUw1NWdF!2m2!1d21.83810233210698!2d73.72097022688158!3f267.8369971057788!4f9.826473289276194!5f0.7820865974627469",
+    "https://www.google.com/maps/embed?pb=!4v1789104238399!6m8!1m7!1sCAoSF0NJSE0wb2dLRUlDQWdJRDQxYzNONVFF!2m2!1d21.8380670279251!2d73.72071557220588!3f262.6531259375928!4f20.806107329348023!5f0.5970117501821992",
+    "https://www.google.com/maps/embed?pb=!4v1789104507127!6m8!1m7!1sCAoSFkNJSE0wb2dLRUlDQWdJRDR0WnFXVVE.!2m2!1d21.83803646420453!2d73.72042823227092!3f0.9492334839823116!4f29.315697407737204!5f0.4000000000000002",
+    "https://www.google.com/maps/embed?pb=!4v1789104674218!6m8!1m7!1sCAoSF0NJSE0wb2dLRUlDQWdJQ240S1A1eEFF!2m2!1d21.83847592759641!2d73.71929503141799!3f3.8694110317938115!4f35.234689702409696!5f0.7069828242331715"
+  ];
+
+  // Edit these to match your actual walk — kept generic for now.
+  const captions = [
+    "Entry path", "Approaching the promenade", "Along the riverside walk",
+    "Midway point", "Continuing toward the statue", "Nearing the base",
+    "Base plaza in view", "Approaching the statue base", "At the base",
+    "Looking up at the statue", "Statue close view", "Viewing gallery approach",
+    "Viewing gallery", "Statue of Unity — final view"
+  ];
+
+  let current = 0;
+  const frameBox = document.getElementById('frameBox');
+  const stepCount = document.getElementById('stepCount');
+  const backBtn = document.getElementById('backBtn');
+  const playBtn = document.getElementById('playBtn');
+  const forwardBtn = document.getElementById('forwardBtn');
+  const pathFill = document.getElementById('pathFill');
+  const pathDots = document.getElementById('pathDots');
+  const captionEl = document.getElementById('caption');
+  const loadingShimmer = document.getElementById('loadingShimmer');
+  const intro = document.getElementById('intro');
+  const beginBtn = document.getElementById('beginBtn');
+
+  // two stacked iframe layers so we can crossfade between them
+  const layerA = document.createElement('iframe');
+  const layerB = document.createElement('iframe');
+  [layerA, layerB].forEach(f => {
+    f.loading = 'lazy';
+    f.referrerPolicy = 'strict-origin-when-cross-origin';
+    f.allowFullscreen = true;
+    f.addEventListener('load', () => {
+      f.dataset.loadedSrc = f.dataset.requestedSrc || '';
+    });
+    frameBox.appendChild(f);
+  });
+  let activeLayer = layerA;
+  let idleLayer = layerB;
+  let preloadedIndex = -1;
+  let isPlaying = false;
+  let playbackTimer = null;
+
+  // build dots
+  panos.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.dataset.index = i;
+    d.setAttribute('role', 'button');
+    d.setAttribute('tabindex', '0');
+    d.setAttribute('aria-label', `Go to point ${i + 1}`);
+    d.addEventListener('click', () => goTo(i));
+    d.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        goTo(i);
+      }
+    });
+    pathDots.appendChild(d);
+  });
+
+  function updateChrome(){
+    stepCount.textContent = `Point ${current + 1} of ${panos.length}`;
+    captionEl.textContent = captions[current] || '';
+    backBtn.disabled = current === 0;
+    forwardBtn.textContent = current === panos.length - 1 ? 'You have arrived' : 'Walk Forward →';
+    forwardBtn.disabled = current === panos.length - 1;
+
+    const pct = (current / (panos.length - 1)) * 100;
+    pathFill.style.width = pct + '%';
+
+    [...pathDots.children].forEach((dot, i) => {
+      dot.classList.toggle('done', i < current);
+      dot.classList.toggle('active', i === current);
+    });
+  }
+
+  function preloadNext(){
+    const nextIndex = current + 1;
+    if(nextIndex < panos.length && preloadedIndex !== nextIndex){
+      idleLayer.dataset.requestedSrc = panos[nextIndex];
+      idleLayer.dataset.loadedSrc = '';
+      idleLayer.src = panos[nextIndex];
+      preloadedIndex = nextIndex;
+    }
+  }
+
+  function waitForLayer(layer, url){
+    if(layer.dataset.loadedSrc === url) return Promise.resolve();
+    return new Promise(resolve => {
+      const checkLoaded = () => {
+        if(layer.dataset.loadedSrc === url){
+          layer.removeEventListener('load', checkLoaded);
+          resolve();
+        }
+      };
+      layer.addEventListener('load', checkLoaded);
+      checkLoaded();
+    });
+  }
+
+  async function goTo(index){
+    if(index === current) return true;
+    loadingShimmer.classList.add('show');
+    const targetUrl = panos[index];
+    if(preloadedIndex !== index || idleLayer.dataset.requestedSrc !== targetUrl){
+      idleLayer.dataset.requestedSrc = targetUrl;
+      idleLayer.dataset.loadedSrc = '';
+      idleLayer.src = targetUrl;
+    }
+    await waitForLayer(idleLayer, targetUrl);
+    current = index;
+    idleLayer.classList.add('active');
+    activeLayer.classList.remove('active');
+    [activeLayer, idleLayer] = [idleLayer, activeLayer];
+    loadingShimmer.classList.remove('show');
+    preloadedIndex = -1;
+    updateChrome();
+    preloadNext();
+    return true;            
+  }
+
+  function stopWalk(){
+    isPlaying = false;
+    clearTimeout(playbackTimer);
+    playbackTimer = null;
+    playBtn.textContent = 'Play';
+    playBtn.setAttribute('aria-pressed', 'false');
+  }
+      
+  function startWalk(){
+    if(current === panos.length - 1) goTo(0);
+    isPlaying = true;
+    playBtn.textContent = 'Pause';
+    playBtn.setAttribute('aria-pressed', 'true');
+    clearTimeout(playbackTimer);
+    const playNext = async () => {
+      if(!isPlaying) return;
+      if(current >= panos.length - 1){
+        stopWalk();
+        return;
+      }
+      await goTo(current + 1);
+      if(isPlaying) playbackTimer = setTimeout(playNext, 2500);
+    };
+    playbackTimer = setTimeout(playNext, 2500);
+  }
+
+  // initial load (no fade needed for the very first frame)
+  activeLayer.dataset.requestedSrc = panos[current];
+  activeLayer.src = panos[current];
+  activeLayer.classList.add('active');
+  updateChrome();
+  preloadNext();
+
+  backBtn.addEventListener('click', () => { if(current > 0) goTo(current - 1); });
+  forwardBtn.addEventListener('click', () => { if(current < panos.length - 1) goTo(current + 1); });
+  playBtn.addEventListener('click', () => {
+    if(isPlaying) stopWalk();
+    else startWalk();
+  });
+
+  // keyboard navigation
+  document.addEventListener('keydown', e => {
+    if(e.key === 'ArrowRight' && current < panos.length - 1) goTo(current + 1);
+    if(e.key === 'ArrowLeft' && current > 0) goTo(current - 1);
+  });
+
+  // swipe navigation (touch)
+  let touchStartX = null;
+  frameBox.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive:true});
+  frameBox.addEventListener('touchend', e => {
+    if(touchStartX === null) return;
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if(Math.abs(dx) > 60){
+      if(dx < 0 && current < panos.length - 1) goTo(current + 1);
+      if(dx > 0 && current > 0) goTo(current - 1);
+    }
+    touchStartX = null;
+  }, {passive:true});
+
+  // intro / begin walk (also triggers fullscreen on first gesture)
+  beginBtn.addEventListener('click', () => {
+    intro.classList.add('hidden');
+    const el = document.documentElement;
+    if(el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+    else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  });
+</script>
+
+</body>
+</html>
