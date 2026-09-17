@@ -120,10 +120,10 @@ export default function App() {
     setNearestIdx(result.nearestIndex);
     setNearestDistance(result.distance);
 
-    // 3. Proximity check: use the user's selected slider value.
-    //    The per-point proximityThreshold values in panoramas.ts are documentation
-    //    only — the slider is the single source of truth for triggering.
-    const withinRange = result.distance <= proximityThreshold;
+    // 3. Proximity check: per-point threshold from panoramas.ts, falling back
+    //    to the user's selected slider value if a point doesn't define one.
+    const pointThreshold = PANORAMAS[result.nearestIndex]?.proximityThreshold ?? proximityThreshold;
+    const withinRange = result.distance <= pointThreshold;
     setIsWithinProximity(withinRange);
 
     // 4. Tight-segment guard: P3 (idx 2) and P4 (idx 3) are ~5 m apart.

@@ -8,8 +8,8 @@ export interface PanoramaPoint {
   /**
    * Per-point trigger radius (meters). Used instead of the global slider value
    * when the point needs tighter or looser matching than the global default.
-   * P3/P4 are only ~5 m apart — use 2 m here to avoid simultaneous overlap.
-   * All other adjacent gaps are ≥35 m — 5 m is fine there.
+   * Recalibrated from real phone GPS readings — consecutive points are now
+   * 11–18 m apart, so a shared 6 m radius is safe everywhere (no overlap risk).
    */
   proximityThreshold: number;
 }
@@ -20,44 +20,44 @@ export const PANORAMAS: PanoramaPoint[] = [
     file: "IMG20260916170730.jpg",
     url: "/photos/IMG20260916170730.jpg",
     caption: "Walk Point 1",
-    lat: 22.247078,
-    lng: 70.797216,
-    proximityThreshold: 5   // wide gap to P2 (~35 m) — 5 m is safe
+    lat: 22.247149,
+    lng: 70.797180,
+    proximityThreshold: 6
   },
   {
     id: 2,
     file: "IMG20260916171121.jpg",
     url: "/photos/IMG20260916171121.jpg",
     caption: "Walk Point 2",
-    lat: 22.247392,
-    lng: 70.797286,
-    proximityThreshold: 5   // wide gap on both sides — 5 m is safe
+    lat: 22.247289,
+    lng: 70.797190,
+    proximityThreshold: 6
   },
   {
     id: 3,
     file: "IMG20260916171333.jpg",
     url: "/photos/IMG20260916171333.jpg",
     caption: "Walk Point 3",
-    lat: 22.247572,
-    lng: 70.797320,
-    proximityThreshold: 2   // only ~5 m from P4 — must be <2.5 m to avoid overlap
+    lat: 22.247381,
+    lng: 70.797142,
+    proximityThreshold: 6
   },
   {
     id: 4,
     file: "IMG20260916171446.jpg",
     url: "/photos/IMG20260916171446.jpg",
     caption: "Walk Point 4",
-    lat: 22.247599,
-    lng: 70.797281,
-    proximityThreshold: 2   // only ~5 m from P3 — must be <2.5 m to avoid overlap
+    lat: 22.247514,
+    lng: 70.797200,
+    proximityThreshold: 6
   },
   {
     id: 5,
     file: "IMG20260916171600.jpg",
     url: "/photos/IMG20260916171600.jpg",
     caption: "Walk Point 5 (Final)",
-    lat: 22.247510,
-    lng: 70.797414,
-    proximityThreshold: 5   // end point, wide gap from P4 — 5 m is fine
+    lat: 22.247541,
+    lng: 70.797371,
+    proximityThreshold: 6
   }
 ];
